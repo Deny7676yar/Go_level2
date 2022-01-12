@@ -13,10 +13,6 @@ import (
 //Пример:
 //Вызов: func ( "SELECT * FROM table WHERE deleted = ? AND id IN(?) AND count < ?", false, []int{1, 6, 234}, 555 )
 //Ответ: "SELECT * FROM table WHERE deleted = ? AND id IN(?,?,?) AND count < ?", []interface{}{ false, 1, 6, 234, 555 }
-//
-//Сделайте кодогенерацию с помощью easyjson для любой Вашей структуры.
-//go:generate go run ./gen/main.go
-//go:generate goimports -w ./assigns.go
 
 func prepareSqlStmt(q string, args ...interface{}) (string, []interface{}) {
 	retSlice := make([]interface{}, 0)
