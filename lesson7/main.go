@@ -18,43 +18,33 @@ import (
 //go:generate go run ./gen/main.go
 //go:generate goimports -w ./assigns.go
 
-func PrintStruct(q string, args interface{})(string, []interface{}) {
-	if args == nil {
-		panic("nill")
-	}
+func prepareSqlStmt(q string, args ...interface{}) (string, []interface{}) {
+	retSlice := make([]interface{}, 0)
+	builder := strings.Builder{}
+	splitedString := strings.Split(q, "?")
 
-	val := reflect.ValueOf(args)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
+	for i, arg := range args {
+		builder.WriteString(splitedString[i])
 
-	if val.Kind() != reflect.Struct {
-		panic("non struct")
-	}
+		switch reflect.TypeOf(arg).Kind() {
+		case reflect.Slice:
+			argSlice := reflect.ValueOf(arg)
+			marks := make([]string, argSlice.Len())
 
-	ret := make([]interface{}, 3)
-	qs := ""
+			for i := 0; i < argSlice.Len(); i++ {
+				// Добавим каждый элемент переданного слайса в итоговый слайс
+				retSlice = append(retSlice, argSlice.Index(i).Interface())
+				marks[i] = "?"
+			}
+			builder.WriteString(strings.Join(marks, ", "))
 
-	for i := 0; i < val.NumField(); i++ {
-
-
-		typeField := val.Type().Field(i)
-		if typeField.Type.Kind() == reflect.Slice {
-			qs = strings.Repeat("?", val.Field(i).Len())
-			log.Printf("nested field: %v,%v", val.Field(i).Len())
-
-			//q3 := strings.Index(q, "?")
-			q = strings.Replace(q, "?", qs, val.Field(i).Len())
-
-
-
+		default:
+			retSlice = append(retSlice, arg)
+			builder.WriteString("?")
 		}
-		ret[i] = val.Field(i).Interface()
 	}
 
-	return q, ret
-
-
+	return builder.String(), retSlice
 }
 
 func main()  {
@@ -67,7 +57,7 @@ func main()  {
 		SliceSql: []int{1, 8, 234},
 		Ints: 555,
 	}
-	q := "SELECT * FROM table WHERE deleted = ? AND id IN(?) AND count < ?"
+	q := "SELECT * FROM table WHERE deleted = ? AND id IN(???) AND count < ?"
 
-	fmt.Println(PrintStruct(q, m))
+	fmt.Println(prepareSqlStmt(q, m))
 }
